@@ -3,13 +3,15 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
+using UnityEngine.Assertions;
 
 public class FadeController : MonoBehaviour {
 
     private UnityEvent m_callBack;
     private static Image s_fadePanel;
     private static Canvas s_canvasComp;
-    private static bool m_isValid = false;
+    private static bool s_isValid = false;
+    private static bool s_isCreate = false;
     private bool m_isCallBackValid;
 
     private delegate void SetColorQueue(Color _color);
@@ -32,11 +34,11 @@ public class FadeController : MonoBehaviour {
     }
 
     public void FadeIn(float _fadeTime) {
-        StartCoroutine(AlphaTransition(- (_fadeTime)));
+        StartCoroutine(AlphaTransition(-(_fadeTime)));
     }
 
     public void FadeOut(float _fadeTime) {
-        StartCoroutine(AlphaTransition( _fadeTime));
+        StartCoroutine(AlphaTransition(_fadeTime));
     }
 
     public void FadeIn(float _fadeTime, Color _color) {
@@ -90,18 +92,22 @@ public class FadeController : MonoBehaviour {
     }
 
     public static void CreateInstance(MonoBehaviour _caller) {
-        if (!m_isValid) {
+        Assert.IsFalse(s_isCreate, "Instance is already exsists. Multiple create is not allow.");
+        if (!s_isCreate) {
             GameObject controllerObj = new GameObject("FadeControllerObject");
             Instance = controllerObj.AddComponent<FadeController>();
             DontDestroyOnLoad(controllerObj);
+            s_isCreate = true;
             _caller.StartCoroutine(CreateCanvasObjects(controllerObj));
         }
     }
 
     public static void DestroyInstance() {
-        if (m_isValid) {
+        Assert.IsTrue(s_isValid, "Instance is null. You need create instance by CreateInstance(MonoBehaviour _caller)");
+        if (s_isValid) {
             GameObject obj = Instance.gameObject;
             Instance = null;
+            s_isValid = false;
             Destroy(obj);
         }
     }
@@ -124,7 +130,7 @@ public class FadeController : MonoBehaviour {
     private static IEnumerator CreateCanvasObjects(GameObject _parnet) {
         yield return null;
 
-        GameObject canvasObj = new GameObject("FadeCnavas");
+        GameObject canvasObj = new GameObject("FadeCanvas");
         canvasObj.AddComponent<CanvasScaler>();
         canvasObj.AddComponent<GraphicRaycaster>();
         canvasObj.transform.SetParent(_parnet.transform);
@@ -143,13 +149,13 @@ public class FadeController : MonoBehaviour {
         Color panelColor = s_fadePanel.color;
         s_fadePanel.color = new Color(panelColor.r, panelColor.g, panelColor.b, 0);
 
+        s_isValid = true;
         s_queue.Invoke();
-        m_isValid = true;
     }
 
     private IEnumerator AlphaTransition(float _fadeTime) {
 
-        while (!m_isValid) { yield return new WaitForEndOfFrame(); }
+        while (!s_isValid) { yield return new WaitForEndOfFrame(); }
 
         float alfa = _fadeTime < 0 ? 1.0f : 0.0f;
         IsFinish = false;
