@@ -75,28 +75,6 @@ public class FadeController : MonoBehaviour {
         s_canvasComp.sortingOrder = _sortingOrder;
     }
 
-    private IEnumerator AlphaTransition(float _fadeTime) {
-        float alfa = _fadeTime < 0 ? 1.0f : 0.0f;
-        IsFinish = false;
-
-        while (0.0f <= alfa && alfa <= 1.0f) {
-            float delta = Time.deltaTime;
-            alfa += delta / _fadeTime;
-            s_fadePanel.color = new Color(m_color.r, m_color.g, m_color.b, alfa);
-            yield return new WaitForSeconds(delta);
-        }
-
-        IsFinish = true;
-        
-        if (m_isCallBackValid) {
-            m_callBack.Invoke();
-            m_callBack.RemoveAllListeners();
-            m_isCallBackValid = false;
-        }
-    }
-
-    public bool IsFinish { private set; get; }
-
     public static FadeController Instance {
         get {
             if (s_instance == null) {
@@ -124,4 +102,25 @@ public class FadeController : MonoBehaviour {
             return s_instance;
         }
     }
+
+    private IEnumerator AlphaTransition(float _fadeTime) {
+        float alfa = _fadeTime < 0 ? 1.0f : 0.0f;
+        IsFinish = false;
+
+        while (0.0f <= alfa && alfa <= 1.0f) {
+            alfa += Time.deltaTime / _fadeTime;
+            s_fadePanel.color = new Color(m_color.r, m_color.g, m_color.b, alfa);
+            yield return new WaitForEndOfFrame();
+        }
+
+        IsFinish = true;
+        
+        if (m_isCallBackValid) {
+            m_callBack.Invoke();
+            m_callBack.RemoveAllListeners();
+            m_isCallBackValid = false;
+        }
+    }
+
+    public bool IsFinish { private set; get; }
 }
