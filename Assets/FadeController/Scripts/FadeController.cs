@@ -17,9 +17,7 @@ public class FadeController : MonoBehaviour {
     private static Canvas s_canvasComp;
     private bool m_isCallBackValid;
 
-    private FadeController() { }
-
-    private void Start() {
+    private FadeController(){
         IsFinish = false;
         m_callBack = new UnityEvent();
         m_isCallBackValid = false;
