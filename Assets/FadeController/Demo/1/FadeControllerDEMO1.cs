@@ -13,13 +13,13 @@ public class FadeControllerDEMO1 : MonoBehaviour {
     private FadeController m_fadeController;
 
     private void Start() {
+        FadeController.CreateInstance(this);
         m_fadeController = FadeController.Instance;
         m_fadeController.SetSortingOrder(1);
-        m_fadeController.FadeIn(m_fadeInTime, m_fadeInColor);
     }
 
     private void Update () {
-        if (Input.anyKeyDown && m_fadeController.IsFinish) {
+        if (Input.anyKeyDown) {
             m_isIn = !m_isIn;
             if (m_isIn) {
                 m_fadeController.FadeIn(m_fadeInTime, m_fadeInColor);

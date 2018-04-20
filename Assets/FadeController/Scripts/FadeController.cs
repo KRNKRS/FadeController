@@ -4,18 +4,23 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Events;
 
-[DisallowMultipleComponent]
 public class FadeController : MonoBehaviour {
 
-    private const string COROUTINE_NAME = "AlphaTransition";
-
-    [SerializeField]
-    private Color m_color = Color.black;
     private UnityEvent m_callBack;
-    private static FadeController s_instance;
     private static Image s_fadePanel;
     private static Canvas s_canvasComp;
+    private static bool m_isValid = false;
     private bool m_isCallBackValid;
+
+    private delegate void SetColorQueue(Color _color);
+    private SetColorQueue m_setColorQueue;
+    private Color m_colorBuff;
+
+    private delegate void SetSortingOrderQueue(int _sortingOrder);
+    private SetSortingOrderQueue m_setSortingOrderQueue;
+    private int m_sortingOrderBuff;
+
+    private static Action s_queue;
 
     private FadeController() { }
 
@@ -23,16 +28,15 @@ public class FadeController : MonoBehaviour {
         IsFinish = false;
         m_callBack = new UnityEvent();
         m_isCallBackValid = false;
+        s_queue = QueueInvoke;
     }
 
     public void FadeIn(float _fadeTime) {
-        SetColor(Color.black);
-        StartCoroutine(COROUTINE_NAME, -(_fadeTime));
+        StartCoroutine(AlphaTransition(- (_fadeTime)));
     }
 
     public void FadeOut(float _fadeTime) {
-        SetColor(Color.black);
-        StartCoroutine(COROUTINE_NAME, _fadeTime);
+        StartCoroutine(AlphaTransition( _fadeTime));
     }
 
     public void FadeIn(float _fadeTime, Color _color) {
@@ -68,53 +72,97 @@ public class FadeController : MonoBehaviour {
     }
 
     public void SetColor(Color _color) {
-        m_color = _color;
-    }
-
-    public void SetSortingOrder(int _sortingOrder) {
-        s_canvasComp.sortingOrder = _sortingOrder;
-    }
-
-    public static FadeController Instance {
-        get {
-            if (s_instance == null) {
-
-                GameObject controllerObj = new GameObject("FadeControllerObject");
-                s_instance = controllerObj.AddComponent<FadeController>();
-                DontDestroyOnLoad(controllerObj);
-
-                GameObject canvasObj = new GameObject("FadeCnavas");
-                s_canvasComp = canvasObj.AddComponent<Canvas>();
-                canvasObj.AddComponent<CanvasScaler>();
-                canvasObj.AddComponent<GraphicRaycaster>();
-                canvasObj.transform.SetParent(controllerObj.transform);
-
-                GameObject fadePanelObj = new GameObject("FadePanel");
-                fadePanelObj.AddComponent<CanvasRenderer>();
-                fadePanelObj.transform.SetParent(canvasObj.transform);
-                s_fadePanel = fadePanelObj.AddComponent<Image>();
-
-                s_canvasComp.renderMode = RenderMode.ScreenSpaceOverlay;
-                s_fadePanel.rectTransform.anchorMin = Vector2.zero;
-                s_fadePanel.rectTransform.anchorMax = Vector2.one;
-                s_fadePanel.rectTransform.sizeDelta = Vector2.zero;
-            }
-            return s_instance;
+        if (s_fadePanel == null) {
+            m_colorBuff = _color;
+            m_setColorQueue = SetColor;
+        } else {
+            s_fadePanel.color = _color;
         }
     }
 
+    public void SetSortingOrder(int _sortingOrder) {
+        if (s_canvasComp == null) {
+            m_sortingOrderBuff = _sortingOrder;
+            m_setSortingOrderQueue = SetSortingOrder;
+        } else {
+            s_canvasComp.sortingOrder = _sortingOrder;
+        }
+    }
+
+    public static void CreateInstance(MonoBehaviour _caller) {
+        if (!m_isValid) {
+            GameObject controllerObj = new GameObject("FadeControllerObject");
+            Instance = controllerObj.AddComponent<FadeController>();
+            DontDestroyOnLoad(controllerObj);
+            _caller.StartCoroutine(CreateCanvasObjects(controllerObj));
+        }
+    }
+
+    public static void DestroyInstance() {
+        if (m_isValid) {
+            GameObject obj = Instance.gameObject;
+            Instance = null;
+            Destroy(obj);
+        }
+    }
+
+    private void QueueInvoke() {
+        if (m_setColorQueue != null) {
+            m_setColorQueue.Invoke(m_colorBuff);
+            m_setColorQueue = null;
+        }
+        if (m_setSortingOrderQueue != null) {
+            m_setSortingOrderQueue.Invoke(m_sortingOrderBuff);
+            m_setSortingOrderQueue = null;
+        }
+    }
+
+    public static FadeController Instance {
+        private set; get;
+    }
+
+    private static IEnumerator CreateCanvasObjects(GameObject _parnet) {
+        yield return null;
+
+        GameObject canvasObj = new GameObject("FadeCnavas");
+        canvasObj.AddComponent<CanvasScaler>();
+        canvasObj.AddComponent<GraphicRaycaster>();
+        canvasObj.transform.SetParent(_parnet.transform);
+        s_canvasComp = canvasObj.GetComponent<Canvas>();
+        s_canvasComp.renderMode = RenderMode.ScreenSpaceOverlay;
+        yield return null;
+
+        GameObject fadePanelObj = new GameObject("FadePanel");
+        fadePanelObj.AddComponent<CanvasRenderer>();
+        fadePanelObj.transform.SetParent(canvasObj.transform);
+        s_fadePanel = fadePanelObj.AddComponent<Image>();
+        s_fadePanel.rectTransform.anchorMin = Vector2.zero;
+        s_fadePanel.rectTransform.anchorMax = Vector2.one;
+        s_fadePanel.rectTransform.sizeDelta = Vector2.zero;
+        s_fadePanel.rectTransform.anchoredPosition = Vector3.zero;
+        Color panelColor = s_fadePanel.color;
+        s_fadePanel.color = new Color(panelColor.r, panelColor.g, panelColor.b, 0);
+
+        s_queue.Invoke();
+        m_isValid = true;
+    }
+
     private IEnumerator AlphaTransition(float _fadeTime) {
+
+        while (!m_isValid) { yield return new WaitForEndOfFrame(); }
+
         float alfa = _fadeTime < 0 ? 1.0f : 0.0f;
         IsFinish = false;
 
+        Color color = s_fadePanel.color;
         while (0.0f <= alfa && alfa <= 1.0f) {
             alfa += Time.deltaTime / _fadeTime;
-            s_fadePanel.color = new Color(m_color.r, m_color.g, m_color.b, alfa);
+            s_fadePanel.color = new Color(color.r, color.g, color.b, alfa);
             yield return new WaitForEndOfFrame();
         }
 
         IsFinish = true;
-        
+
         if (m_isCallBackValid) {
             m_callBack.Invoke();
             m_callBack.RemoveAllListeners();

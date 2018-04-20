@@ -7,13 +7,9 @@ public class FadeControllerDEMO2 : MonoBehaviour {
     private FadeController m_fadeController;
 
     private void Start() {
-
+        FadeController.CreateInstance(this);
         m_fadeController = FadeController.Instance;
         m_fadeController.SetSortingOrder(1);
-        m_fadeController.FadeIn(1.0f, Color.black);
-
-        FadeController.Instance.FadeIn(1.0f);
-
     }
 
     private void Update() {

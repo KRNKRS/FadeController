@@ -10,10 +10,9 @@ public class FadeControllerDEMO3 : MonoBehaviour {
     private bool m_isFade = false;
 
     private void Start() {
-
+        FadeController.CreateInstance(this);
         m_fadeController = FadeController.Instance;
         m_fadeController.SetSortingOrder(0);
-        m_fadeController.FadeIn(1.0f, Color.black);
 
         if(TextObj != null) {
             TextObj.SetActive(false);
