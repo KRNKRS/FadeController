@@ -8,13 +8,12 @@ public class FadeController : MonoBehaviour {
 
     private const string COROUTINE_NAME = "AlphaTransition";
 
-    private Canvas m_canvas;
     [SerializeField]
     private Color m_color = Color.black;
     private Action m_callBack;
-    private static FadeController m_instance;
-    private static Image m_fadePanel;
-    private static Canvas m_canvasComp;
+    private static FadeController s_instance;
+    private static Image s_fadePanel;
+    private static Canvas s_canvasComp;
 
     private FadeController() { }
 
@@ -67,7 +66,7 @@ public class FadeController : MonoBehaviour {
     }
 
     public void SetSortingOrder(int _sortingOrder) {
-        m_canvasComp.sortingOrder = _sortingOrder;
+        s_canvasComp.sortingOrder = _sortingOrder;
     }
 
     private IEnumerator AlphaTransition(float _fadeTime) {
@@ -77,7 +76,7 @@ public class FadeController : MonoBehaviour {
         while (0.0f <= alfa && alfa <= 1.0f) {
             float delta = Time.deltaTime;
             alfa += delta / _fadeTime;
-            m_fadePanel.color = new Color(m_color.r, m_color.g, m_color.b, alfa);
+            s_fadePanel.color = new Color(m_color.r, m_color.g, m_color.b, alfa);
             yield return new WaitForSeconds(delta);
         }
 
@@ -93,14 +92,14 @@ public class FadeController : MonoBehaviour {
 
     public static FadeController Instance {
         get {
-            if (m_instance == null) {
+            if (s_instance == null) {
 
                 GameObject controllerObj = new GameObject("FadeControllerObject");
-                m_instance = controllerObj.AddComponent<FadeController>();
+                s_instance = controllerObj.AddComponent<FadeController>();
                 DontDestroyOnLoad(controllerObj);
 
                 GameObject canvasObj = new GameObject("FadeCnavas");
-                m_canvasComp = canvasObj.AddComponent<Canvas>();
+                s_canvasComp = canvasObj.AddComponent<Canvas>();
                 canvasObj.AddComponent<CanvasScaler>();
                 canvasObj.AddComponent<GraphicRaycaster>();
                 canvasObj.transform.SetParent(controllerObj.transform);
@@ -108,14 +107,14 @@ public class FadeController : MonoBehaviour {
                 GameObject fadePanelObj = new GameObject("FadePanel");
                 fadePanelObj.AddComponent<CanvasRenderer>();
                 fadePanelObj.transform.SetParent(canvasObj.transform);
-                m_fadePanel = fadePanelObj.AddComponent<Image>();
+                s_fadePanel = fadePanelObj.AddComponent<Image>();
 
-                m_canvasComp.renderMode = RenderMode.ScreenSpaceOverlay;
-                m_fadePanel.rectTransform.anchorMin = Vector2.zero;
-                m_fadePanel.rectTransform.anchorMax = Vector2.one;
-                m_fadePanel.rectTransform.sizeDelta = Vector2.zero;
+                s_canvasComp.renderMode = RenderMode.ScreenSpaceOverlay;
+                s_fadePanel.rectTransform.anchorMin = Vector2.zero;
+                s_fadePanel.rectTransform.anchorMax = Vector2.one;
+                s_fadePanel.rectTransform.sizeDelta = Vector2.zero;
             }
-            return m_instance;
+            return s_instance;
         }
     }
 }
